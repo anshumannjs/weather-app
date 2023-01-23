@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import TextField from '@mui/material/TextField'
 import Autocomplete from '@mui/material/Autocomplete';
+import WeatherComp from './WeatherComp';
+// import '../App.css'
 
 const opt=[]
 
 export default function Home() {
+
+  const [WeatherInfo,setWeatherInfo]=useState("");
 
   const [text,setText]=useState("");
   const [latLon,setLatLon]=useState({
@@ -12,8 +16,9 @@ export default function Home() {
     lon: '85.8245'
   })
 
-  const [cityOption,setCityOption]=useState([]);
-  const cityData={};
+  // const [cityOption,setCityOption]=useState([]);
+  const [cityData,setCityData]=useState({});
+  // let cityData={}
 
   function textChange(e){
     setText(e.target.value);
@@ -21,29 +26,30 @@ export default function Home() {
   let div;
   useEffect(()=>{
     div=document.getElementById("combo")
-    div.addEventListener("change",(e)=>{
-      console.log(div.value)
-      setText(div.value);
+    div.addEventListener("input",(e)=>{
+      auto(div.value)
     })
   },[])
 
-  useEffect(()=>{
-    if (text!=""){
-      auto();
-    }
-  },[text])
-
-  async function auto(){
+  async function auto(text){
     fetch(geoAutoComplete+text+'&apiKey='+geoKey)
     .then(e=>e.json())
     .then((e)=>{
+      opt.length=0;
+      setCityData({})
+      let cityD={}
         e.features.map((e)=>{
-            setCityOption([...cityOption,e.properties]);
-            cityData[`${e.properties.place_id}`]={
-                lat: e.properties.lat,
-                lon: e.properties.lon
+          console.log(opt,cityData);
+            // setCityOption([...cityOption,e.properties.formatted]);
+            opt.push({
+              label: e.properties.formatted,
+              place_id: e.properties.place_id
+            })
+            cityD[`${e.properties.place_id}`]={
+              lat: e.properties.lat,
+              lon: e.properties.lon
             }
-            console.log(cityData)
+            setCityData(cityD);
         })
     })
   }
@@ -56,29 +62,38 @@ export default function Home() {
   let geoAutoComplete='https://api.geoapify.com/v1/geocode/autocomplete?text='
 
   useEffect(()=>{
+    console.log(latLon.lat,latLon.lon);
     fetch(base+latLon.lat+'&lon='+latLon.lon)
     .then((e)=>e.json())
     .then((e)=>{
-      console.log(e)
+      setWeatherInfo(e);
     })
   },[latLon])
 
   function loactionChanger(e){
-    console.log(e);
+    if (e!=undefined){
+      console.log(cityData);
+      let x=cityData[e.place_id];
+      setLatLon(x);
+    }
   }
 
 
   return (
-    <div>
+    <div className=''>
         <Autocomplete 
+          isOptionEqualToValue={(option,value)=>option.label===value.label}
           id='combo'
           options={opt}
           sx={{width:300}}
-          renderInput={(params)=><TextField {...params} label="movie"/>}
+          renderInput={(params)=><TextField {...params} label="Enter city name"/>}
           onChange={(e,f)=>{
-            console.log(e,f);
             loactionChanger(f)}}
+          className="mx-auto"
         />
+        {WeatherInfo==""?"":
+        <WeatherComp info={WeatherInfo}/>
+        }
     </div>
   )
 }
